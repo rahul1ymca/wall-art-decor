@@ -1,0 +1,6 @@
+{
+  "name": "Déco Murale - Le Guide Ultime",
+  "description": "Guide complet et pas-à-pas de la déco murale : conseils d'experts, règles d'accrochage, tendances, galerie interactive et projets DIY pour transformer vos murs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
