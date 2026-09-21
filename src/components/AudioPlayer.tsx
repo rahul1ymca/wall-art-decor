@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Volume2, VolumeX, Play, Pause, RotateCcw, FastForward, CheckCircle2 } from 'lucide-react';
+import { Volume2, VolumeX, Play, Pause, RotateCcw } from 'lucide-react';
 import { Language } from '../types/content';
 
 interface AudioPlayerProps {
@@ -17,26 +17,39 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const [isPaused, setIsPaused] = useState(false);
   const [rate, setRate] = useState(1);
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [isSupported, setIsSupported] = useState(true);
+  const [isSupported, setIsSupported] = useState(false);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      setIsSupported(true);
-      const updateVoices = () => {
-        const available = window.speechSynthesis.getVoices();
-        setVoices(available);
-      };
-      updateVoices();
-      window.speechSynthesis.onvoiceschanged = updateVoices;
-    } else {
+    try {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window && window.speechSynthesis) {
+        setIsSupported(true);
+        const updateVoices = () => {
+          try {
+            const available = window.speechSynthesis.getVoices();
+            if (available && available.length > 0) {
+              setVoices(available);
+            }
+          } catch (e) {
+            console.warn('SpeechSynthesis getVoices error:', e);
+          }
+        };
+        updateVoices();
+        window.speechSynthesis.onvoiceschanged = updateVoices;
+      }
+    } catch (e) {
+      console.warn('SpeechSynthesis initialization not supported:', e);
       setIsSupported(false);
     }
 
     return () => {
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
+      try {
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window && window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+        }
+      } catch (e) {
+        // Ignore cleanup errors
       }
     };
   }, []);
@@ -47,70 +60,87 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   }, [language]);
 
   const speakParagraph = (index: number) => {
-    if (!('speechSynthesis' in window) || index >= articleText.length) {
-      handleStop();
-      return;
-    }
-
-    window.speechSynthesis.cancel();
-    const textToSpeak = articleText[index];
-    if (!textToSpeak) return;
-
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utteranceRef.current = utterance;
-    utterance.rate = rate;
-
-    // Pick best voice for the active language
-    const langCode = language === 'fr' ? 'fr' : 'en';
-    const matchedVoice = voices.find((v) => v.lang.toLowerCase().startsWith(langCode));
-    if (matchedVoice) {
-      utterance.voice = matchedVoice;
-    }
-    utterance.lang = language === 'fr' ? 'fr-FR' : 'en-US';
-
-    utterance.onstart = () => {
-      setCurrentIdx(index);
-      setIsPlaying(true);
-      setIsPaused(false);
-      onParagraphChange?.(index);
-    };
-
-    utterance.onend = () => {
-      if (index + 1 < articleText.length) {
-        speakParagraph(index + 1);
-      } else {
+    try {
+      if (typeof window === 'undefined' || !('speechSynthesis' in window) || !window.speechSynthesis || index >= articleText.length) {
         handleStop();
+        return;
       }
-    };
 
-    utterance.onerror = () => {
+      window.speechSynthesis.cancel();
+      const textToSpeak = articleText[index];
+      if (!textToSpeak) return;
+
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      utteranceRef.current = utterance;
+      utterance.rate = rate;
+
+      // Pick best voice for the active language
+      const langCode = language === 'fr' ? 'fr' : 'en';
+      const matchedVoice = voices.find((v) => v.lang && v.lang.toLowerCase().startsWith(langCode));
+      if (matchedVoice) {
+        utterance.voice = matchedVoice;
+      }
+      utterance.lang = language === 'fr' ? 'fr-FR' : 'en-US';
+
+      utterance.onstart = () => {
+        setCurrentIdx(index);
+        setIsPlaying(true);
+        setIsPaused(false);
+        onParagraphChange?.(index);
+      };
+
+      utterance.onend = () => {
+        if (index + 1 < articleText.length) {
+          speakParagraph(index + 1);
+        } else {
+          handleStop();
+        }
+      };
+
+      utterance.onerror = () => {
+        handleStop();
+      };
+
+      window.speechSynthesis.speak(utterance);
+    } catch (err) {
+      console.warn('SpeechSynthesis playback error:', err);
       handleStop();
-    };
-
-    window.speechSynthesis.speak(utterance);
+    }
   };
 
   const handlePlay = () => {
-    if (isPaused) {
-      window.speechSynthesis.resume();
-      setIsPaused(false);
-      setIsPlaying(true);
-    } else {
-      speakParagraph(currentIdx);
+    try {
+      if (isPaused && window.speechSynthesis) {
+        window.speechSynthesis.resume();
+        setIsPaused(false);
+        setIsPlaying(true);
+      } else {
+        speakParagraph(currentIdx);
+      }
+    } catch (e) {
+      console.warn(e);
     }
   };
 
   const handlePause = () => {
-    if (window.speechSynthesis.speaking) {
-      window.speechSynthesis.pause();
-      setIsPaused(true);
-      setIsPlaying(false);
+    try {
+      if (typeof window !== 'undefined' && window.speechSynthesis && window.speechSynthesis.speaking) {
+        window.speechSynthesis.pause();
+        setIsPaused(true);
+        setIsPlaying(false);
+      }
+    } catch (e) {
+      console.warn(e);
     }
   };
 
   const handleStop = () => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
+    try {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    } catch (e) {
+      // Ignore
     }
     setIsPlaying(false);
     setIsPaused(false);
@@ -121,8 +151,14 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const handleSpeedChange = (newRate: number) => {
     setRate(newRate);
     if (isPlaying && !isPaused) {
-      window.speechSynthesis.cancel();
-      setTimeout(() => speakParagraph(currentIdx), 100);
+      try {
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+          setTimeout(() => speakParagraph(currentIdx), 100);
+        }
+      } catch (e) {
+        console.warn(e);
+      }
     }
   };
 

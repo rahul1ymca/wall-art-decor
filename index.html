@@ -136,7 +136,21 @@
     </script>
   </head>
   <body class="bg-[#FAF8F5] text-[#242422] antialiased selection:bg-[#E8DCC4] selection:text-[#1F2421]">
-    <div id="root"></div>
+    <div id="root">
+      <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #FAF8F5; color: #1F2421; padding: 20px; text-align: center;">
+        <div style="width: 48px; height: 48px; border-radius: 12px; background: #1F2421; color: #FAF8F5; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; margin-bottom: 16px;">D</div>
+        <h1 style="font-size: 20px; font-weight: 700; margin: 0 0 8px 0; letter-spacing: -0.5px;">DÉCO MURALE MAG</h1>
+        <p style="font-size: 14px; color: #8C7A6B; margin: 0 0 20px 0;">Chargement du guide pas à pas...</p>
+        <div style="width: 40px; height: 4px; background: #EAE2D7; border-radius: 2px; overflow: hidden;">
+          <div style="width: 100%; height: 100%; background: #C86D51; animation: pulse 1.5s infinite ease-in-out;"></div>
+        </div>
+      </div>
+    </div>
+    <script>
+      window.addEventListener('error', function(e) {
+        console.error('Global capture:', e.message, e.filename, e.lineno);
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
